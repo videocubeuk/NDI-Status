@@ -7,7 +7,7 @@ A network-attached display that automatically discovers and shows all active NDI
 - **Auto-discovery** — scans for NDI sources via mDNS every 3 seconds, no configuration required
 - **Live status** — green dot = reachable, red dot = unreachable (source stays visible when lost)
 - **Three-line entries** — machine name, stream name, IP address per source (up to 16 sources)
-- **Touch scroll** — swipe up/down on the display to scroll through the list
+- **Touch scroll** — swipe up/down via AR1021 touch controller to scroll through the list
 - **Scroll indicators** — arrow triangles appear when more entries exist above or below
 - **Ethernet status** — coloured dot in the title bar shows link state (green/red)
 - **Powered over Ethernet** — no USB power required in production
@@ -17,7 +17,8 @@ A network-attached display that automatically discovers and shows all active NDI
 | Component | Part |
 |-----------|------|
 | MCU board | [Olimex ESP32-PoE-ISO](https://www.olimex.com/Products/IoT/ESP32/ESP32-POE-ISO/) |
-| Display | [Olimex MOD-2.8LCD](https://www.olimex.com/Products/Modules/LCD/MOD-2.8LCD/) (ILI9341, 240×320, XPT2046 touch) |
+| Display | [Olimex MOD-2.8LCD](https://www.olimex.com/Products/Modules/LCD/MOD-2.8LCD/) (ILI9341, 240×320) |
+| Touch controller | AR1021 (UART) |
 | Connection | UEXT connector (no additional wiring needed for SPI display) |
 | Network | 10/100 Ethernet via LAN8720 PHY (PoE capable) |
 
@@ -30,9 +31,9 @@ A network-attached display that automatically discovers and shows all active NDI
 | MOSI     | 2 |
 | SCLK     | 14 |
 | MISO     | 35 |
-| Touch CS | 4 |
+| AR1021 RX | Configurable in `src/main.cpp` (`AR1021_RX_PIN`) |
 
-> **Note:** Touch CS (GPIO4) requires a wire from the XPT2046 CS pin on the MOD-2.8LCD to GPIO4 on the ESP32-PoE-ISO. If not wired, the display works but touch scrolling is disabled.
+> **Note:** Touch input is read from an external AR1021 controller over UART. Set `AR1021_RX_PIN` and calibration constants in `src/main.cpp` to match your wiring/panel orientation.
 
 ## Software
 
@@ -40,6 +41,17 @@ A network-attached display that automatically discovers and shows all active NDI
 - **Platform:** `espressif32` @ 6.x
 - **Library:** [TFT_eSPI](https://github.com/Bodmer/TFT_eSPI) by Bodmer
 - **mDNS:** ESP-IDF `mdns.h` called directly to access service instance names
+
+## Touch Calibration
+
+On boot, touch calibration runs automatically when either condition is true:
+
+- no calibration file exists in persistent storage
+- the calibration button on GPIO34 is pressed during startup
+
+Calibration data is stored in SPIFFS at `"/touch_cal.bin"` and reloaded on subsequent boots.
+
+> **GPIO34 note:** GPIO34 is input-only on ESP32 and does not provide an internal pull-up. Use external pull-up/down hardware appropriate for your button wiring.
 
 ## Building & Flashing
 
